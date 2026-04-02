@@ -1,123 +1,49 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from pages.base_page import BasePage
-import allure
-import time
+from locators.order_page_locators import OrderPageLocators
+from selenium.webdriver.common.by import By
 
 
-class OrderPage(BasePage):
-    # Локаторы первой формы
-    NAME_INPUT = (By.XPATH, "//input[@placeholder='* Имя']")
-    SURNAME_INPUT = (By.XPATH, "//input[@placeholder='* Фамилия']")
-    ADDRESS_INPUT = (By.XPATH, "//input[@placeholder='* Адрес: куда привезти заказ']")
-    METRO_STATION_INPUT = (By.XPATH, "//input[@placeholder='* Станция метро']")
-    PHONE_INPUT = (By.XPATH, "//input[@placeholder='* Телефон: на него позвонит курьер']")
-    NEXT_BUTTON = (By.XPATH, "//button[text()='Далее']")
+class OrderPage(BasePage, OrderPageLocators):
     
-    # Локаторы второй формы
-    DELIVERY_DATE_INPUT = (By.XPATH, "//input[@placeholder='* Когда привезти самокат']")
-    RENTAL_PERIOD_INPUT = (By.XPATH, "//div[contains(@class, 'Dropdown-placeholder')]")
-    COLOR_BLACK = (By.ID, "black")
-    COLOR_GREY = (By.ID, "grey")
-    COMMENT_INPUT = (By.XPATH, "//input[@placeholder='Комментарий для курьера']")
-    ORDER_BUTTON = (By.XPATH, "//button[contains(@class, 'Button_Button') and text()='Заказать']")
-    CONFIRM_BUTTON = (By.XPATH, "//button[text()='Да']")
+    def fill_first_form(self, name, surname, address, metro, phone):
+        self.input_text(self.NAME_INPUT, name)
+        self.input_text(self.SURNAME_INPUT, surname)
+        self.input_text(self.ADDRESS_INPUT, address)
+        
+        self.click(self.METRO_INPUT)
+        metro_option = (By.XPATH, f"//div[contains(text(), '{metro}')]")
+        option = self.wait.until(lambda d: d.find_element(*metro_option))
+        self.click_js(option)
+        
+        self.input_text(self.PHONE_INPUT, phone)
+        self.click(self.NEXT_BUTTON)
+        self.wait.until(lambda d: d.find_element(*self.DATE_INPUT))
     
-    def __init__(self, driver):
-        super().__init__(driver)
-    
-    def click_js(self, element):
-        """Клик через JavaScript"""
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
-        time.sleep(0.5)
-        self.driver.execute_script("arguments[0].click();", element)
-    
-    @allure.step("Заполнить первую форму заказа")
-    def fill_first_form(self, name, surname, address, metro_station, phone):
-        time.sleep(1)
-        
-        # Имя
-        name_input = self.wait.until(EC.presence_of_element_located(self.NAME_INPUT))
-        name_input.clear()
-        name_input.send_keys(name)
-        
-        # Фамилия
-        surname_input = self.wait.until(EC.presence_of_element_located(self.SURNAME_INPUT))
-        surname_input.clear()
-        surname_input.send_keys(surname)
-        
-        # Адрес
-        address_input = self.wait.until(EC.presence_of_element_located(self.ADDRESS_INPUT))
-        address_input.clear()
-        address_input.send_keys(address)
-        
-        # Станция метро
-        metro_input = self.wait.until(EC.element_to_be_clickable(self.METRO_STATION_INPUT))
-        metro_input.click()
-        time.sleep(1)
-        
-        metro_option = self.wait.until(EC.element_to_be_clickable(
-            (By.XPATH, f"//div[contains(text(), '{metro_station}')]")))
-        metro_option.click()
-        time.sleep(1)
-        
-        # Телефон
-        phone_input = self.wait.until(EC.presence_of_element_located(self.PHONE_INPUT))
-        phone_input.clear()
-        phone_input.send_keys(phone)
-        time.sleep(1)
-        
-        # Кнопка "Далее"
-        next_btn = self.wait.until(EC.element_to_be_clickable(self.NEXT_BUTTON))
-        self.click_js(next_btn)
-        time.sleep(2)
-    
-    @allure.step("Заполнить вторую форму заказа")
-    def fill_second_form(self, delivery_date, rental_period, color, comment):
-        time.sleep(1)
-        
-        # Дата доставки
-        date_input = self.wait.until(EC.presence_of_element_located(self.DELIVERY_DATE_INPUT))
+    def fill_second_form(self, date, period, color, comment):
+        date_input = self.find_element(self.DATE_INPUT)
         date_input.clear()
-        date_input.send_keys(delivery_date)
+        date_input.send_keys(date)
         date_input.send_keys("\n")
-        time.sleep(2)
         
-        # Срок аренды
-        period_input = self.wait.until(EC.element_to_be_clickable(self.RENTAL_PERIOD_INPUT))
-        period_input.click()
-        time.sleep(1)
+        self.click(self.RENTAL_PERIOD)
+        period_option = (By.XPATH, f"//div[contains(text(), '{period}')]")
+        option = self.wait.until(lambda d: d.find_element(*period_option))
+        self.click_js(option)
         
-        period_option = self.wait.until(EC.element_to_be_clickable(
-            (By.XPATH, f"//div[contains(text(), '{rental_period}')]")))
-        period_option.click()
-        time.sleep(1)
-        
-        # Цвет самоката
         if color == "black":
-            color_checkbox = self.wait.until(EC.element_to_be_clickable(self.COLOR_BLACK))
-            self.click_js(color_checkbox)
-        elif color == "grey":
-            color_checkbox = self.wait.until(EC.element_to_be_clickable(self.COLOR_GREY))
-            self.click_js(color_checkbox)
-        time.sleep(1)
+            self.click(self.COLOR_BLACK)
+        else:
+            self.click(self.COLOR_GREY)
         
-        # Комментарий
         if comment:
-            comment_input = self.wait.until(EC.presence_of_element_located(self.COMMENT_INPUT))
-            comment_input.clear()
-            comment_input.send_keys(comment)
+            self.input_text(self.COMMENT_INPUT, comment)
         
-        time.sleep(1)
-        
-        # Кнопка "Заказать"
-        order_btn = self.wait.until(EC.element_to_be_clickable(self.ORDER_BUTTON))
-        self.click_js(order_btn)
-        time.sleep(2)
+        self.click(self.ORDER_BUTTON)
+        self.wait.until(lambda d: d.find_element(*self.CONFIRM_BUTTON))
     
-    @allure.step("Подтвердить заказ")
-    def confirm_order(self):
-        confirm_btn = self.wait.until(EC.element_to_be_clickable(self.CONFIRM_BUTTON))
-        self.click_js(confirm_btn)
-        time.sleep(3)
+    def confirm(self):
+        self.click(self.CONFIRM_BUTTON)
+        self.wait.until(lambda d: d.find_element(*self.SUCCESS_MODAL))
+    
+    def is_success(self):
+        return self.find_element(self.SUCCESS_MODAL).is_displayed()
